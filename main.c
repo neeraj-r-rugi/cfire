@@ -68,11 +68,14 @@ int main(int argc, char *argv[]) {
     char sh_cmd[8192] = {0}; // Reassembled shell command for the stdin branch
 
 
-    if (isatty(STDIN_FILENO))
-        fprintf(stderr, "cfire> ");
+
 
     if (strcmp(argv[1], "-") == 0) {
         char cmd_buf[4096];
+
+        if (isatty(STDIN_FILENO))
+            fprintf(stderr, "cfire> ");
+
         int found = 0;
         while (fgets(cmd_buf, sizeof(cmd_buf), stdin)) {
             if (strncmp(cmd_buf, "gcc", 3) == 0) {
