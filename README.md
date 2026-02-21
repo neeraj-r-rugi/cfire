@@ -1,6 +1,6 @@
 # CFIRE - Compile and Fire
 
-A fast C program runner that compiles and executes C code entirely in memory, without writing to disk.
+A blazingly fast C program runner that compiles and executes C code entirely in memory, without writing to disk.
 
 ## Overview
 
