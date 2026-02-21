@@ -83,10 +83,15 @@ int main(int argc, char *argv[]) {
                 break;
             }
         }
+        // After the while(fgets) scanning loop, before fork()
+        
         if (!found) {
             PANIC("No gcc command found in stdin.\n");
             exit(1);
         }
+
+        //Reattach stdin to the terminal so that the compiled program can read from it if needed
+        freopen("/dev/tty", "r", stdin);
 
         /*  Reassemble the command token by token, stripping any existing -o <file>,
             then append -o <memfd path>. The result is passed to sh -c so that
@@ -110,6 +115,7 @@ int main(int argc, char *argv[]) {
         // Append -o pointing to the memfd
         strncat(sh_cmd, "-o ", sizeof(sh_cmd) - strlen(sh_cmd) - 1);
         strncat(sh_cmd, path,  sizeof(sh_cmd) - strlen(sh_cmd) - 1);
+
     }
 
     //Initiate child process to compile the code into the memfd
