@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Create in-memory file
-    int fd = memfd_create("mem_file", 0);
+    int fd = memfd_create("CFIRE_mem_file", 0);
     if (fd < 0) {
         PANIC("Failed to create in-memory file.\n");
         exit(1);
