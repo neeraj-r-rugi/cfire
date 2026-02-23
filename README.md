@@ -96,11 +96,19 @@ make -n | ./cfire - [arguments...]
 
 # Interactive stdin mode
 ./cfire -
+
+# Time the full compile + run cycle
+./cfire --time <source_file.c>
+
+# Time GCC compilation only (no execution)
+make -n | ./cfire --time-gcc
 ```
 
 ### Parameters
 - `<source_file.c>` - Path to the C source file to compile and execute
-- `-` Read the GCC command from stdin (pipe or interactive)
+- `-` - Read the GCC command from stdin (pipe or interactive)
+- `--time` - Time the full compile + execute cycle; works like file mode but prints elapsed time
+- `--time-gcc` - Read a GCC command from stdin (like `-`), compile only, print build time in milliseconds, and exit without executing
 - `[arguments...]` - Optional arguments passed to the compiled program. Works in both file and pipe mode.
 
 ---
@@ -207,6 +215,56 @@ cfire> gcc file1.c file2.c
 ```
 CFIRE will compile and execute it exactly as if it came from a pipe. This works because `fgets` on stdin simply blocks until input is available, whether that input comes from a pipe or a human typing.
 
+### Timing Flags
+
+CFIRE includes two flags for measuring build performance.
+
+**`--time-gcc`** reads a GCC command from stdin (exactly like `-`), compiles it, prints the build time in milliseconds, and exits without executing the binary. This is useful for benchmarking compilation speed in isolation.
+
+```bash
+make -n | ./cfire --time-gcc
+# Build completed in: 1108.73 ms
+```
+
+**`--time`** works like file mode but additionally measures and prints the total elapsed time covering both compilation and execution.
+
+```bash
+./cfire --time program.c
+```
+
+Both flags use `CLOCK_MONOTONIC` for high-resolution timing unaffected by system clock adjustments.
+
+---
+
+## Performance: CFIRE vs `make` — Nilgiri Text Editor
+
+The [Nilgiri Text Editor](https://github.com/neeraj-r-rugi/Nilgiri-Code-Editor) is a GTK3/GtkSourceView project built from multiple source files with several `pkg-config` dependencies. It makes a good real-world benchmark for comparing CFIRE's pipe mode against a direct `make` invocation.
+
+| Method | Time |
+|---|---|
+| `make -n \| cfire --time-gcc` | **1108.73 ms** |
+| `time make` (real) | **1491 ms** |
+
+CFIRE completes the same build roughly **~25% faster** than `make` in this case. The difference comes from eliminating disk writes for the output binary — everything stays in RAM.
+
+> ![Build Time Compare](images/build_time_cmp.png)
+
+The Nilgiri build command that CFIRE processes via `make -n`:
+```bash
+gcc src/main.c src/defines.c src/file_handling.c src/fonts.c src/process.c \
+    src/overlays.c src/menu_bar.c src/search_replace.c \
+    -o ./Nilgiri \
+    `pkg-config --cflags gtk+-3.0 gtksourceview-3.0` \
+    -Iinclude -Wno-deprecated-declarations \
+    `pkg-config --libs gtk+-3.0 gtksourceview-3.0` \
+    `pkg-config --libs gtk+-3.0`
+```
+
+Shell backtick expansion, multi-file compilation, and external library flags are all handled transparently by CFIRE's stdin/pipe mode.
+
+Sure, you can add this line right after the timing comparison:
+
+> ⚠️ *Note: CFIRE's speed advantage applies to **full rebuilds only** — unlike `make`, it has no incremental build support and recompiles everything on every run.*
 ---
 
 ## Binary Name Warning
@@ -324,7 +382,13 @@ Full Makefile GCC command, multi-file builds, shell expansion — nothing on dis
 ## Advanced Usage
 
 ```bash
+# Time only the GCC compilation step (pipe mode, no execution)
+make -n | ./cfire --time-gcc
+
 # Time the full compile + run cycle
+./cfire --time program.c arg1 arg2
+
+# Time with the system time command for comparison
 time ./cfire program.c arg1 arg2
 
 # Capture output

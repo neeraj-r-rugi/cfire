@@ -28,6 +28,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+struct timespec start, end;
 
 #define PANIC(...)                                                      \
     do {                                                                \
@@ -52,6 +55,9 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    if(strcmp(argv[1], "--time") == 0 || strcmp(argv[1], "--time-gcc") == 0){
+        clock_gettime(CLOCK_MONOTONIC, &start);
+    }
     //Create in-memory file
     int fd = memfd_create("CFIRE_mem_file", 0);
     if (fd < 0) {
@@ -70,7 +76,7 @@ int main(int argc, char *argv[]) {
 
 
 
-    if (strcmp(argv[1], "-") == 0) {
+    if (strcmp(argv[1], "-") == 0 || strcmp(argv[1], "--time-gcc" ) == 0) {
         char cmd_buf[4096];
 
         if (isatty(STDIN_FILENO))
@@ -122,7 +128,7 @@ int main(int argc, char *argv[]) {
     pid_t pid = fork();
 
     if (pid == 0) {
-        if (strcmp(argv[1], "-") == 0) {
+        if (strcmp(argv[1], "-") == 0 || strcmp(argv[1], "--time-gcc") == 0) {
             // Pass the reassembled command to sh -c so backticks and shell
             // expressions like `pkg-config ...` are properly expanded
             execl("/bin/sh", "sh", "-c", sh_cmd, NULL);
@@ -143,6 +149,14 @@ int main(int argc, char *argv[]) {
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         PANIC("GCC Compilation failed.\n");
         exit(1);
+    }
+
+    if(strcmp(argv[1], "--time-gcc") == 0){
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        double compilation_time =   (end.tv_sec - start.tv_sec) * 1000.0 + 
+                                    (end.tv_nsec - start.tv_nsec) / 1000000.0;
+        printf("Build completed in: %.2f ms\n", compilation_time);
+        exit(0);
     }
 
     /*
