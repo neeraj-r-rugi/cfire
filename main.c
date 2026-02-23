@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if(strcmp(argv[1], "--time-gcc") == 0){
+    if(strcmp(argv[1], "--time-gcc") == 0 || strcmp(argv[1], "--time") == 0){
         clock_gettime(CLOCK_MONOTONIC, &end);
         double compilation_time =   (end.tv_sec - start.tv_sec) * 1000.0 + 
                                     (end.tv_nsec - start.tv_nsec) / 1000000.0;
