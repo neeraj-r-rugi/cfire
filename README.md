@@ -217,7 +217,7 @@ CFIRE will compile and execute it exactly as if it came from a pipe. This works 
 
 ### Timing Flags
 
-CFIRE includes two flags for measuring build performance.
+CFIRE includes a flag for measuring build performance.
 
 **`--time-gcc`** reads a GCC command from stdin (exactly like `-`), compiles it, prints the build time in milliseconds, and exits without executing the binary. This is useful for benchmarking compilation speed in isolation.
 
@@ -226,13 +226,7 @@ make -n | ./cfire --time-gcc
 # Build completed in: 1108.73 ms
 ```
 
-**`--time`** works like file mode but additionally measures and prints the total elapsed time covering both compilation and execution.
-
-```bash
-./cfire --time program.c
-```
-
-Both flags use `CLOCK_MONOTONIC` for high-resolution timing unaffected by system clock adjustments.
+The flag use's `CLOCK_MONOTONIC` for high-resolution timing unaffected by system clock adjustments.
 
 ---
 

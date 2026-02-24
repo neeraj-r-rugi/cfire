@@ -36,6 +36,7 @@ struct timespec start, end;
     do {                                                                \
         fprintf(stderr, "\033[01;31mCFIRE PANIC:\033[0m ");             \
         fprintf(stderr, __VA_ARGS__);                                   \
+        exit(1);                                                        \
     } while (0)
 
 
@@ -45,24 +46,21 @@ int main(int argc, char *argv[]) {
 
     //Check for input file, at least one argument is required (the C source file)
     if (argc < 2) {
-        PANIC("No input file or Makefile argument '-' provided.\n");
         fprintf(stderr, "Usage File: %s file.c [args...]\n", argv[0]);
         fprintf(stderr, "Usage Makefile: %s - [args...]\n", argv[0]);
-        exit(1);
+        PANIC("No input file or Makefile argument '-' provided.\n");
     }
     if(strcmp(argv[1], "--panic") == 0) {
         PANIC("PANIC FLAG ACTIVE, Program Exiting.\n");
-        exit(1);
     }
 
-    if(strcmp(argv[1], "--time") == 0 || strcmp(argv[1], "--time-gcc") == 0){
+    if(strcmp(argv[1], "--time-gcc") == 0){
         clock_gettime(CLOCK_MONOTONIC, &start);
     }
     //Create in-memory file
     int fd = memfd_create("CFIRE_mem_file", 0);
     if (fd < 0) {
         PANIC("Failed to create in-memory file.\n");
-        exit(1);
     }
 
     char path[64];
@@ -81,6 +79,7 @@ int main(int argc, char *argv[]) {
 
         if (isatty(STDIN_FILENO))
             fprintf(stderr, "cfire> ");
+        
 
         int found = 0;
         while (fgets(cmd_buf, sizeof(cmd_buf), stdin)) {
@@ -93,11 +92,12 @@ int main(int argc, char *argv[]) {
         
         if (!found) {
             PANIC("No gcc command found in stdin.\n");
-            exit(1);
         }
 
         //Reattach stdin to the terminal so that the compiled program can read from it if needed
-        freopen("/dev/tty", "r", stdin);
+        if(freopen("/dev/tty", "r", stdin) == NULL){
+            PANIC("Failed to re-attach terminal to STDIN");
+        }
 
         /*  Reassemble the command token by token, stripping any existing -o <file>,
             then append -o <memfd path>. The result is passed to sh -c so that
@@ -148,10 +148,9 @@ int main(int argc, char *argv[]) {
     waitpid(pid, &status, 0);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         PANIC("GCC Compilation failed.\n");
-        exit(1);
     }
 
-    if(strcmp(argv[1], "--time-gcc") == 0 || strcmp(argv[1], "--time") == 0){
+    if(strcmp(argv[1], "--time-gcc") == 0){
         clock_gettime(CLOCK_MONOTONIC, &end);
         double compilation_time =   (end.tv_sec - start.tv_sec) * 1000.0 + 
                                     (end.tv_nsec - start.tv_nsec) / 1000000.0;
